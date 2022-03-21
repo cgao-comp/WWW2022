@@ -19,7 +19,7 @@ public class Vertex1 {
 
 	public int index;//这个属性属于EPA算法，用于确定该点在感染矩阵的第几行
 
-	public double infected_p; //让每个节点的传播率不同，异构网络专用参数*且很重要
+	public double infected_p; //让每个节点的传播率不同，异构网络参数
 
 	public HashSet<Pair> ID_Label=new HashSet<Pair>();
 	//public int t_sum=0;
