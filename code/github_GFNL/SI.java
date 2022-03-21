@@ -1,15 +1,17 @@
 package github_GFNL;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Random;
 
-import tool.MyRandom;
-import tool.Read;
+//import Test.Test;
 
 public class SI {
 	public double infe_rate;
@@ -19,12 +21,17 @@ public class SI {
 
 	public int source;
 
-	public ArrayList<String> infected_people;//前need_infected_num个为传染源
+	public ArrayList<String> infected_people;
 	public ArrayList<String> temp;
 	
 	
 	public int[][] readInf_4_from_oneFile(Graph1 network,ArrayList<String> obv_set, String shortPath_fileName){
-		int[][] short_temp=new int[obv_set.size()][network.verNum];
+		ArrayList<String> Opre_set=new ArrayList<String>();
+		for (String obv_name : obv_set) {
+			Opre_set.add(network.vertexArray[Integer.parseInt(obv_name)-1].origin);
+		}
+		
+		int[][] short_temp=new int[Opre_set.size()][network.verNum];
 		String filePath=shortPath_fileName;
 		try {
 			FileInputStream fileInputStream = new FileInputStream(filePath);
@@ -32,10 +39,10 @@ public class SI {
 			String line = null;
 			int index=1;
 			while ((line = bufferedReader.readLine()) != null) {
-				if(obv_set.contains(index+"")) {
+				if(Opre_set.contains(index+"")) {
 			       String[] dis_all=line.split(" ");
 			       int index2=0;
-			       int right_pos=obv_set.indexOf(index+"");
+			       int right_pos=Opre_set.indexOf(index+"");
 			       for (String dis : dis_all) {
 			    	   short_temp[right_pos][index2]=Integer.parseInt(dis);
 			    	   index2++;
@@ -53,6 +60,37 @@ public class SI {
 		
 		return short_temp;
 	}
+	
+	public int[][] readInf_4(Graph1 network,ArrayList<String> obv_set){
+		int[][] short_temp=new int[obv_set.size()][network.verNum];
+		int index=0;
+		for (String working_name : obv_set) {
+			Vertex1 obv=network.vertexArray[Integer.parseInt(working_name)-1];
+			String filePath="G:\\Data Files\\dblp_large\\v"+obv.origin+".txt";
+			try {
+				FileInputStream fileInputStream;
+				fileInputStream = new FileInputStream(filePath);
+				BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fileInputStream));
+			    String line = null;
+			    while ((line = bufferedReader.readLine()) != null) {
+			       String[] dis_all=line.split(" ");
+			       int index2=0;
+			       for (String dis : dis_all) {
+			    	   short_temp[index][index2]=Integer.parseInt(dis);
+			    	   index2++;
+			       }
+			    }
+			    fileInputStream.close();
+			} catch (IOException e) {
+				System.out.println("读文件的时候出现问题...");
+				e.printStackTrace();
+			}
+			index++;
+			
+		}
+		
+		return short_temp;
+	}
 
 	
 	void initNet_SIR_Greedy_fromFile(Graph1 network, double infected_P, double recovery_p, int inf_source_num, String sensor_file_path) {
@@ -60,7 +98,7 @@ public class SI {
 		infected_people = new ArrayList<String>();
 
 		String[] myFONC_obvs = null;
-		myFONC_obvs = Read.readFromObvsFile(sensor_file_path);
+		myFONC_obvs = Test.Test.readFromObvsFile(sensor_file_path);
 		
 		for (String obv_name : myFONC_obvs) {
 			network.vertexArray[Integer.parseInt(obv_name)-1].isObserver=true;
@@ -133,7 +171,6 @@ public class SI {
 		// 使用FONC算法筛选观察点
 		Arraysort yitaArraysort = new Arraysort(network);
 
-		// 二维数组需要for循环便利每一个一维数组，对每一个一维数组调用.clone()方法!!!
 		int[][] shortP_temp = new int[network.verNum][network.verNum];
 		for (int copy_i = 0; copy_i < network.verNum; copy_i++) {
 			for (int copy_j = 0; copy_j < network.verNum; copy_j++) {
@@ -141,8 +178,6 @@ public class SI {
 			}
 		}
 
-		//减少时间复杂度
-		//这个H矩阵行索引是从0开始的，而列索引从1开始，1就代表  对于点1，他的1阶邻居  H[i][1]
 		int[][] H=new int[network.verNum][30];
 		for(int i=0;i<ALG.shortPath.length;i++) {
 			for (int j = 0; j < ALG.shortPath.length; j++) {
@@ -151,20 +186,13 @@ public class SI {
 			}
 		}
 
-		//回到最初111
-		//安全
-		
-		// int[][] shortP_temp=new int[network.verNum][network.verNum];
 		ArrayList<String> obvsArrayList = new ArrayList<String>();
 		Arraysort sort=new Arraysort(network);
 
-
-		//1、统计greedy信息到greedySort中
-		// 对于每一行都要计算η
 		for (int i = 1; i <= shortP_temp.length; i++) {
 			yitaArraysort.arr[i - 1].verName_typeINT = i;
 			int yita = 0;
-			// η是由众多的其他的节点构成的,计算每一个组成项
+			
 			for (int j = 1; j <= shortP_temp.length; j++) {
 				if (shortP_temp[i - 1][j - 1] != 0) {// 有距离的
 					int dis = shortP_temp[i - 1][j - 1];
@@ -173,9 +201,7 @@ public class SI {
 			}
 			yitaArraysort.arr[i - 1].Au = yita;
 		}
-		// 所有点的η都统计完了,将η最大的点加入到obvs中
-		// Arraysort sort=yitaArraysort; //这个不行，需要深拷贝
-		//Arraysort sort = new Arraysort(network);
+		
 		for (int index = 0; index < network.verNum; index++) {
 			sort.arr[index].verName_typeINT = yitaArraysort.arr[index].verName_typeINT;
 			sort.arr[index].Au = yitaArraysort.arr[index].Au;
@@ -191,35 +217,29 @@ public class SI {
 			sort.arr[ii].verName_typeINT=sort.arr[ii].verName_typeINT;
 		}
 
-		//shortP_temp参与更替值，shortP_notChange作为备份矩阵
 		int[][] shortP_notChange=new int[shortP_temp.length][shortP_temp.length];
 		for(int ii=0;ii<shortP_temp.length;ii++)
 			for(int jj=0;jj<shortP_temp.length;jj++)
 				shortP_notChange[ii][jj]=shortP_temp[ii][jj];
 
-		
-		
-		//所有趟的DFS就是由此入口开始...........................................................................................
+		//所有趟的DFS就是由此入口开始
 		for(int max_num=1;max_num<=network.verNum;max_num++){
 			if(obvsArrayList.size()>=need_deployed_num) {
-				//System.out.println("obvsArrayList.size():"+obvsArrayList.size());
-				//System.out.println("need_deployed_num:"+need_deployed_num);
+				
 				break;
 			}
 
-			//System.out.println("for1111111............");
+			
 			if(obvsArrayList.contains(sort.arr[network.verNum - max_num].verName_typeINT+"")){
 				continue;
 			}
 			obvsArrayList.add(sort.arr[network.verNum - max_num].verName_typeINT + "");
-			//System.out.println("1111处加入的sensor："+sort.arr[network.verNum - max_num].verName_typeINT);
-
-			//恢复shortPath为初始的样子，开始执行循环...恢复矩阵的操作只有这个时候才能执行，执行力以后就开始走某一趟完整DFS了。后边的某一趟DFS中，不会再存在其他恢复矩阵操作，只能把矩阵里的元素变0
+			
 			for(int ii=0;ii<shortP_temp.length;ii++)
 				for(int jj=0;jj<shortP_temp.length;jj++)
 					shortP_temp[ii][jj]=shortP_notChange[ii][jj];
 			
-			//// 将其一整行置为0，且将对应行置为0(先删其他行，最后删对应行)
+			
 			for (int d_i = 0; d_i < shortP_temp.length; d_i++) {
 				if (d_i == sort.arr[network.verNum - max_num].verName_typeINT - 1)
 					continue;
@@ -236,22 +256,20 @@ public class SI {
 			int last_time_num=-1;
 			while (judge_haveNum(shortP_temp)&&obvsArrayList.size()<need_deployed_num&&last_time_num!= obvsArrayList.size()) {
 				last_time_num=obvsArrayList.size();
-				//System.out.println("for22222222222...........");
-				// 对于每一行都要计算η
+				
 				for (int i = 1; i <= shortP_temp.length; i++) {
 					yitaArraysort.arr[i - 1].verName_typeINT = i;
 					int yita = 0;
-					// η是由众多的其他的节点构成的,计算每一个组成项
+					
 					for (int j = 1; j <= shortP_temp.length; j++) {
-						if (shortP_temp[i - 1][j - 1] != 0) {// 有距离的
+						if (shortP_temp[i - 1][j - 1] != 0) {
 							int dis = shortP_temp[i - 1][j - 1];
 							yita=yita+H[j-1][dis];
 						}
 					}
 					yitaArraysort.arr[i - 1].Au = yita;
 				}
-				// 所有点的η都统计完了,将η最大的点加入到obvs中
-				// Arraysort sort=yitaArraysort; //这个不行，需要深拷贝
+				
 				sort = new Arraysort(network);
 				for (int index = 0; index < network.verNum; index++) {
 					sort.arr[index].verName_typeINT = yitaArraysort.arr[index].verName_typeINT;
@@ -272,11 +290,9 @@ public class SI {
 						break;
 					}
 
-					obvsArrayList.add(sort.arr[network.verNum - max_num_inDFS].verName_typeINT + "");//这个add执行以后，后边有break，不需要再添加了
-					//System.out.println("现在obvs的数量："+obvsArrayList.size());
-					//System.out.println("222处加入的sensor："+sort.arr[network.verNum - max_num_inDFS].verName_typeINT);
+					obvsArrayList.add(sort.arr[network.verNum - max_num_inDFS].verName_typeINT + "");
 					
-					//// 将其一整行置为0，且将对应行置为0(先删其他行，最后删对应行)
+					
 					for (int d_i = 0; d_i < shortP_temp.length; d_i++) {
 						if (d_i == sort.arr[network.verNum - max_num_inDFS].verName_typeINT - 1)
 							continue;
@@ -328,17 +344,8 @@ public class SI {
 		// 使用FONC算法筛选观察点
 		Arraysort yitaArraysort = new Arraysort(network);
 
-		// 二维数组需要for循环便利每一个一维数组，对每一个一维数组调用.clone()方法!!!
 		int[][] shortP_temp = ALG.shortPath;
-//	修改1--	= ALG.shortPath;+注释5行		new int[network.verNum][network.verNum];
-//		for (int copy_i = 0; copy_i < network.verNum; copy_i++) {
-//			for (int copy_j = 0; copy_j < network.verNum; copy_j++) {
-//				shortP_temp[copy_i][copy_j] = ALG.shortPath[copy_i][copy_j];
-//			}
-//		}
 
-		//减少时间复杂度
-		//这个H矩阵行索引是从0开始的，而列索引从1开始，1就代表  对于点1，他的1阶邻居  H[i][1]
 		int[][] H=new int[network.verNum][30];
 		for(int i=0;i<ALG.shortPath.length;i++) {
 			for (int j = 0; j < ALG.shortPath.length; j++) {
@@ -347,20 +354,15 @@ public class SI {
 			}
 		}
 
-		//回到最初111
-		//安全
 		
-		// int[][] shortP_temp=new int[network.verNum][network.verNum];
 		ArrayList<String> obvsArrayList = new ArrayList<String>();
 		Arraysort sort=new Arraysort(network);
 
 
-		//1、统计greedy信息到greedySort中
-		// 对于每一行都要计算η
 		for (int i = 1; i <= shortP_temp.length; i++) {
 			yitaArraysort.arr[i - 1].verName_typeINT = i;
 			int yita = 0;
-			// η是由众多的其他的节点构成的,计算每一个组成项
+			
 			for (int j = 1; j <= shortP_temp.length; j++) {
 				if (shortP_temp[i - 1][j - 1] != 0) {// 有距离的
 					int dis = shortP_temp[i - 1][j - 1];
@@ -369,54 +371,37 @@ public class SI {
 			}
 			yitaArraysort.arr[i - 1].Au = yita;
 		}
-		// 所有点的η都统计完了,将η最大的点加入到obvs中
-		// Arraysort sort=yitaArraysort; //这个不行，需要深拷贝
-		//Arraysort sort = new Arraysort(network);
+
 		for (int index = 0; index < network.verNum; index++) {
 			sort.arr[index].verName_typeINT = yitaArraysort.arr[index].verName_typeINT;
 			sort.arr[index].Au = yitaArraysort.arr[index].Au;
 		}
 		Arrays.sort(sort.arr, new MyComprator());
-		for (int i = 0; i < 5; i++) { // 输出排序结果
+		for (int i = 0; i < 5; i++) { 
 			System.out.println("(" + sort.arr[sort.arr.length-1-i].verName_typeINT + "," + sort.arr[sort.arr.length-1-i].Au + ")");
 		}
 		
-		//初始统计了所有点的最大yita
+		
 		for(int ii=0;ii<sort.arr.length;ii++){
 			sort.arr[ii].Au=sort.arr[ii].Au;
 			sort.arr[ii].verName_typeINT=sort.arr[ii].verName_typeINT;
 		}
 
-		//shortP_temp参与更替值，shortP_notChange作为备份矩阵
-//修改2---注释4行		int[][] shortP_notChange=new int[shortP_temp.length][shortP_temp.length];
-//		for(int ii=0;ii<shortP_temp.length;ii++)
-//			for(int jj=0;jj<shortP_temp.length;jj++)
-//				shortP_notChange[ii][jj]=shortP_temp[ii][jj];
+	
 		
-
-		
-		
-		//所有趟的DFS就是由此入口开始,包含全部选sensor的操作...........................................................................................
+		//所有趟的DFS就是由此入口开始
 		for(int max_num=1;max_num<=network.verNum;max_num++){
 			if(obvsArrayList.size()>=need_deployed_num) {
-				//System.out.println("obvsArrayList.size():"+obvsArrayList.size());
-				//System.out.println("need_deployed_num:"+need_deployed_num);
+				
 				break;
 			}
 
-			//System.out.println("for1111111............");
+			
 			if(obvsArrayList.contains(sort.arr[network.verNum - max_num].verName_typeINT+"")){
 				continue;
 			}
 			obvsArrayList.add(sort.arr[network.verNum - max_num].verName_typeINT + "");
-			//System.out.println("1111处加入的sensor："+sort.arr[network.verNum - max_num].verName_typeINT);
-
-			//恢复shortPath为初始的样子，开始执行循环...恢复矩阵的操作只有这个时候才能执行，执行力以后就开始走某一趟完整DFS了。后边的某一趟DFS中，不会再存在其他恢复矩阵操作，只能把矩阵里的元素变0
-//修改3--注释3行			for(int ii=0;ii<shortP_temp.length;ii++)
-//				for(int jj=0;jj<shortP_temp.length;jj++)
-//					shortP_temp[ii][jj]=shortP_notChange[ii][jj];
 			
-			//// 将其一整行置为0，且将对应行置为0(先删其他行，最后删对应行)
 			for (int d_i = 0; d_i < shortP_temp.length; d_i++) {
 				if (d_i == sort.arr[network.verNum - max_num].verName_typeINT - 1)
 					continue;
@@ -433,22 +418,20 @@ public class SI {
 			int last_time_num=-1;
 			while (judge_haveNum(shortP_temp)&&obvsArrayList.size()<need_deployed_num&&last_time_num!= obvsArrayList.size()) {
 				last_time_num=obvsArrayList.size();
-				//System.out.println("for22222222222...........");
-				// 对于每一行都要计算η
+				
 				for (int i = 1; i <= shortP_temp.length; i++) {
 					yitaArraysort.arr[i - 1].verName_typeINT = i;
 					int yita = 0;
-					// η是由众多的其他的节点构成的,计算每一个组成项
+					
 					for (int j = 1; j <= shortP_temp.length; j++) {
-						if (shortP_temp[i - 1][j - 1] != 0) {// 有距离的
+						if (shortP_temp[i - 1][j - 1] != 0) {
 							int dis = shortP_temp[i - 1][j - 1];
 							yita=yita+H[j-1][dis];
 						}
 					}
 					yitaArraysort.arr[i - 1].Au = yita;
 				}
-				// 所有点的η都统计完了,将η最大的点加入到obvs中
-				// Arraysort sort=yitaArraysort; //这个不行，需要深拷贝
+				
 				sort = new Arraysort(network);
 				for (int index = 0; index < network.verNum; index++) {
 					sort.arr[index].verName_typeINT = yitaArraysort.arr[index].verName_typeINT;
@@ -456,7 +439,7 @@ public class SI {
 				}
 				Arrays.sort(sort.arr, new MyComprator());
 				System.out.println("------------DFS内---------------");
-				for (int i = 0; i < 5; i++) { // 输出排序结果
+				for (int i = 0; i < 5; i++) { 
 					System.out.println("(" + sort.arr[sort.arr.length-1-i].verName_typeINT + "," + sort.arr[sort.arr.length-1-i].Au + ")");
 				}
 				System.out.println("------------DFS内---------------");
@@ -466,14 +449,11 @@ public class SI {
 						continue;
 					}
 					if(sort.arr[network.verNum - max_num_inDFS].Au==0){
-						break;//用于约束条件"last_time_num!= obvsArrayList.size()"
+						break;
 					}
 
-					obvsArrayList.add(sort.arr[network.verNum - max_num_inDFS].verName_typeINT + "");//这个add执行以后，后边有break，不需要再添加了
-					//System.out.println("现在obvs的数量："+obvsArrayList.size());
-					//System.out.println("222处加入的sensor："+sort.arr[network.verNum - max_num_inDFS].verName_typeINT);
+					obvsArrayList.add(sort.arr[network.verNum - max_num_inDFS].verName_typeINT + "");
 					
-					//// 将其一整行置为0，且将对应行置为0(先删其他行，最后删对应行)
 					for (int d_i = 0; d_i < shortP_temp.length; d_i++) {
 						if (d_i == sort.arr[network.verNum - max_num_inDFS].verName_typeINT - 1)
 							continue;
@@ -532,17 +512,13 @@ public class SI {
 	public void simulate(Graph1 network, boolean is_heterogenous, double ppt_of_I) {
 		int greedy_infected_obv_num=0;
 		int random_infected_obv_num=0;
-		int end=0; //剪枝
-		//boolean all_sensor_infected_flag=false;
-		
+		int end=0; 
 		int infe_nums=infected_people.size();
-		// System.out.println(infe_nums);
-		for (int i = 1; i <= times && infe_nums <=network.verNum; i++) {// 控制传播了多少轮
+		
+		for (int i = 1; i <= times && infe_nums <=network.verNum; i++) {
 			temp=(ArrayList<String>) infected_people.clone();
-			for (int j = 1; j <= temp.size(); j++) {// 对于每个感染的节点
-
+			for (int j = 1; j <= temp.size(); j++) {
 				String infed_name = temp.get(j-1);
-				//Vertex1 infed_person = CreateGraph3.getVertex(network, infed_name);
 				Vertex1 infed_person = network.vertexArray[Integer.parseInt(infed_name)-1];
 				if (infed_person == null) {
 					System.out.println("不存在该姓名!");
@@ -550,61 +526,42 @@ public class SI {
 				}
 				Vertex1 maybe_person = infed_person.nextNode;
 				while (maybe_person != null) {
-					Vertex1 maybe_node=network.vertexArray[Integer.parseInt(maybe_person.verName)-1];
-					//if (maybe_person.infe == false) {// 111、这里限制了进来的一定是未感染的点，恢复的节点我们不改变他们的infe那么就不会再次被感染 //改1
+					Vertex1 maybe_node=network.vertexArray[Integer.parseInt(maybe_person.verName)-1];					
 					if (maybe_node.infe==false && maybe_node.recover==false) {
-
-						//newest:这里增加一个新的参数，即社交联系紧密度。1代表最为紧密，2代表联系一般，3代表联系疏远
 						int node1_index_inM=Integer.parseInt(infed_person.verName)-1;
 						int node2_index_inM=Integer.parseInt(maybe_node.verName)-1;
-
-						//if(i % (connectedMatrix[node1_index_inM][node2_index_inM])==0) {
-						if(true) {
-							//新加的限制条件3333、这里限制了进来的一定是这次进行联系了
-
+						if(true) {							
 							Random rand = new Random();
 							int a;
-//							if(is_heterogenous) {
-//								a = (rand.nextInt(10000) < 10000 * infed_person.infected_p) ? 1 : 0;
-//							}else {
-//								a = (rand.nextInt(10000) < 10000 * infe_rate) ? 1 : 0;
-//							}
 							a = (rand.nextInt(10000) < 10000 * this.infe_rate) ? 1 : 0;
-							if (a == 1) {// 222、这里限制了进来的一定是达到传染条件的点: 1、未被感染  2、满足传染概率
+							if (a == 1) {
 								infe_nums ++;
 								infected_people.add(maybe_node.verName);
 								maybe_node.infe=true;
 								maybe_node.time=i;
 								maybe_node.origin=infed_name;
 								
-								//贪婪的sensor
 								if(maybe_node.isObserver) {
 									greedy_infected_obv_num++;
 									if(greedy_infected_obv_num==4) {
 										MyExecute.time_myStartEXE4=MyExecute.time_myStartEXE4+i;
 									}
 									if(greedy_infected_obv_num==(int)(observer_num*MyExecute.ppt_of_I_sensor)) {
-										//System.out.println("只能进来一次1");
+										
 										MyExecute.time_myStartEXE30=MyExecute.time_myStartEXE30+i;
 										end++;
 									}
 								}
 								
-								//随机部署的sensor
 								if(maybe_node.isRandomObserver) {
 									random_infected_obv_num++;
 									if(random_infected_obv_num==(int)(observer_num*MyExecute.ppt_of_I_sensor)) {
-										//System.out.println("只能进来一次2");
+										
 										MyExecute.time_randEXE30=MyExecute.time_randEXE30+i;
 										end++;
 									}
 								}
-
-								if(greedy_infected_obv_num>=20||infe_nums>=network.verNum*ppt_of_I||end==2) {
-//									if(all_sensor_infected_flag==false) {
-//										Random rand2=new Random();
-//										MyExecute.time_randEXE30=MyExecute.time_randEXE30+rand2.nextInt(3)+1+i;
-//									}
+								if(greedy_infected_obv_num>=20||infe_nums>=network.verNum*ppt_of_I||end==2){
 									return;
 								}
 								
@@ -667,9 +624,7 @@ public class SI {
 			}
 		}
 		Arrays.sort(sort.arr, new MyComprator());
-//		for (int i = 0; i < allobvs_num; i++) { // 输出排序结果
-//			System.out.println("(" + sort.arr[i].verName_typeINT + "," + sort.arr[i].Au + ")");
-//		}
+
 
 		for(int i=0;i<fetch_num;i++) {
 			if(i<useful_obv_num)
@@ -678,7 +633,7 @@ public class SI {
 				break;
 			}
 		}
-		//System.out.println(obvSet.toString());
+		
 		System.out.println("实际在算法中用到的观察点数量: "+obvSet.size());
 		return obvSet;
 	}
@@ -694,12 +649,15 @@ public class SI {
 		return JordanValue;
 	}
 	
-	public static double optimal_JordanValue_by_Dijstra(Graph1 n, int[][] path, String source, ArrayList<String> obv_set) {
+	public static double optimal_JordanValue_by_Dijstra(Graph1 n, String source, ArrayList<String> obv_set, boolean isBigScaleNet) {
 		double JordanValue=0;
 		int index=0;
 		for (String string : obv_set) {
-			//Vertex1 obvNode=CreateGraph3.getVertex(n,string);
-			JordanValue=JordanValue+ALG.shortPath_fourworkingsensor[index][Integer.parseInt(source)-1]+1;
+			if(isBigScaleNet) {
+				JordanValue=JordanValue+ALG.shortPath_fourworkingsensor[index][Integer.parseInt(source)-1]+1;
+			}else {
+				JordanValue=JordanValue+ALG.shortPath[Integer.parseInt(n.vertexArray[Integer.parseInt(string)-1].origin)-1][Integer.parseInt(source)-1];
+			}
 			//JordanValue=JordanValue+path[Integer.parseInt(source)-1][Integer.parseInt(string)-1];
 			
 			index++;
@@ -715,36 +673,32 @@ public class SI {
 	 * @param n
 	 * @return
 	 */
-	public HashSet<String> getJordonCenter_dividedWeight(Graph1 network,ArrayList<String>usedObvs_set, int n, int type) {
+	public HashSet<String> getJordonCenter_dividedWeight(Graph1 network,ArrayList<String>usedObvs_set, int n, int type, boolean isBigScaleNet) {
 		HashSet<String> allID_set=new HashSet<String>();
 		Arraysort mySort=new Arraysort(network.verNum-observer_num);
 		int index=0;
 		for(int i=0;i<network.verNum;i++) {
 			if(!network.vertexArray[i].isObserver) {
 				mySort.arr[index].verName_typeINT=Integer.parseInt(network.vertexArray[i].verName);
-				//mySort.arr[index].Au=JordanValue_by_Dijstra(ALG.shortPath, network.vertexArray[i].verName, usedObvs_set);
-				mySort.arr[index].Au=optimal_JordanValue_by_Dijstra(network, ALG.shortPath, network.vertexArray[i].verName, usedObvs_set);
+				mySort.arr[index].Au=optimal_JordanValue_by_Dijstra(network, network.vertexArray[i].verName, usedObvs_set, isBigScaleNet);
 				index++;
 			}
 		}
 
 		for(int i=0;i<mySort.arr.length;i++) {
-			//System.out.print(mySort.arr[i].verName_typeINT+": Jordan 值："+mySort.arr[i].Au+" ｜｜｜｜｜");
-			//Vertex1 candidateNode=CreateGraph3.getVertex(network, mySort.arr[i].verName_typeINT+"");
 			double total_div=0;
 			int indexx=0;
 			for (String obv_name : usedObvs_set) {
 				Vertex1 obvNode=network.vertexArray[Integer.parseInt(obv_name)-1];
 
-				//double dis_real=ALG.shortPath[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obvNode.origin)-1]+1;
-				double dis_real=ALG.shortPath_fourworkingsensor[indexx][mySort.arr[i].verName_typeINT-1]+1;
-				//System.out.print("时间距离: "+obvNode.time+"|"+dis_real+"  but not"+(ALG.shortPath[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obvNode.origin)-1]+1)+"  but not"+ALG.shortPath[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obvNode.verName)-1]+"  ");
-				//1. System.out.print("时间距离: "+obvNode.time+"|"+dis_real+"  but not"+ALG.shortPath[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obvNode.verName)-1]+"  ");
-
-//				if(ALG.shortPath_removeEDGES[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obvNode.origin)-1]+1!=(ALG.shortPath[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obvNode.origin)-1]+1))
-//					System.exit(0);
+				double dis_real;
+				if(isBigScaleNet) {
+					dis_real=ALG.shortPath_fourworkingsensor[indexx][mySort.arr[i].verName_typeINT-1]+1;
+				}else {
+					dis_real=ALG.shortPath[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obvNode.origin)-1]+1;
+				}
+				
 				if( ((double)obvNode.time/dis_real) >= (dis_real/(double)obvNode.time) ){
-					//total_div+=obvNode.time/ALG.shortPath[mySort.arr[i].verName_typeINT-1][Integer.parseInt(obv_name)-1];
 					total_div+=(double)obvNode.time/dis_real;
 				}else{
 					total_div+=dis_real/(double)obvNode.time;
@@ -756,115 +710,103 @@ public class SI {
 
 			if(type==-8) //前2/3 后3/4
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(mySort.arr[i].Au)*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div));
-			if(type==-7) //前3/4 后2/3
+			else if(type==-7) //前3/4 后2/3
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.cbrt(total_div)*Math.cbrt(total_div);
-			if(type==-6) //前8/9，后3/4
+			else if(type==-6) //前8/9，后3/4
 				mySort.arr[i].Au=Math.pow(Math.pow(mySort.arr[i].Au, 0.111111), 8)*Math.pow(Math.pow(total_div, 0.25), 3);
-			if(type==-5) //前1，后5/6
+			else if(type==-5) //前1，后5/6
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.pow(Math.pow(total_div, 0.166667), 5);
-			if(type==-4) //前1，后6/7
+			else if(type==-4) //前1，后6/7
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.pow(Math.pow(total_div, 0.142857), 6);
-			if(type==-3) //前1，后7/8
+			else if(type==-3) //前1，后7/8
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.pow(Math.pow(total_div, 0.125), 7);
-			if(type==-2) //前1，后8/9
+			else if(type==-2) //前1，后8/9
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.pow(Math.pow(total_div, 0.111111), 8);
-			if(type==-1) //前1，后9/10
+			else if(type==-1) //前1，后9/10
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.pow(Math.pow(total_div, 0.1), 9);
 
 			/*if(type==-2)  //前8/9，后3/4
 				mySort.arr[i].Au=Math.pow(Math.pow(mySort.arr[i].Au, 0.111111), 8)*Math.pow(Math.pow(total_div, 0.25), 3);
 			*/
 
-			if(type==1) //前1/4 后1/4
+			else if(type==1) //前1/4 后1/4
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(total_div));
-			if(type==2) //前1/4 后1/3
+			else if(type==2) //前1/4 后1/3
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.cbrt(total_div);
-			if(type==3) //前1/4 后1/2
+			else if(type==3) //前1/4 后1/2
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(total_div);
-			if(type==4) //前1/4 后2/3
+			else if(type==4) //前1/4 后2/3
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.cbrt(total_div)*Math.cbrt(total_div);
-			if(type==5) //前1/4 后3/4
+			else if(type==5) //前1/4 后3/4
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div));
-			if(type==6) //前1/4 后1
+			else if(type==6) //前1/4 后1
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*total_div;
 
-			if(type==7) //前1/3 后1/4
+			else if(type==7) //前1/3 后1/4
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.sqrt(Math.sqrt(total_div));
-			if(type==8) //前1/3 后1/3
+			else if(type==8) //前1/3 后1/3
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(total_div);
-			if(type==9) //前1/3 后1/2
+			else if(type==9) //前1/3 后1/2
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.sqrt(total_div);
-			if(type==10) //前1/3 后2/3
+			else if(type==10) //前1/3 后2/3
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(total_div)*Math.cbrt(total_div);
-			if(type==11) //前1/3 后3/4
+			else if(type==11) //前1/3 后3/4
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div));
-			if(type==12) //前1/3 后1
+			else if(type==12) //前1/3 后1
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*total_div;
 
-			if(type==13) //前1/2 后1/4
+			else if(type==13) //前1/2 后1/4
 				mySort.arr[i].Au=Math.sqrt(mySort.arr[i].Au)*Math.sqrt(Math.sqrt(total_div));
-			if(type==14) //前1/2 后1/3
+			else if(type==14) //前1/2 后1/3
 				mySort.arr[i].Au=Math.sqrt(mySort.arr[i].Au)*Math.cbrt(total_div);
-			if(type==15) //前1/2 后1/2
+			else if(type==15) //前1/2 后1/2
 				mySort.arr[i].Au=Math.sqrt(mySort.arr[i].Au)*Math.sqrt(total_div);
-			if(type==16) //前1/2 后2/3
+			else if(type==16) //前1/2 后2/3
 				mySort.arr[i].Au=Math.sqrt(mySort.arr[i].Au)*Math.cbrt(total_div)*Math.cbrt(total_div);
-			if(type==17) //前1/2 后3/4
+			else if(type==17) //前1/2 后3/4
 				mySort.arr[i].Au=Math.sqrt(mySort.arr[i].Au)*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div));
-			if(type==18) //前1/2 后1
+			else if(type==18) //前1/2 后1
 				mySort.arr[i].Au=Math.sqrt(mySort.arr[i].Au)*total_div;
 
-			if(type==19) //前2/3 后1/4
+			else if(type==19) //前2/3 后1/4
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(mySort.arr[i].Au)*Math.sqrt(Math.sqrt(total_div));
-			if(type==20) //前2/3 后1/3
+			else if(type==20) //前2/3 后1/3
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(mySort.arr[i].Au)*Math.cbrt(total_div);
-			if(type==21) //前2/3 后1/2
+			else if(type==21) //前2/3 后1/2
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(mySort.arr[i].Au)*Math.sqrt(total_div);
-			if(type==22) //前2/3 后2/3
+			else if(type==22) //前2/3 后2/3
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(mySort.arr[i].Au)*Math.cbrt(total_div)*Math.cbrt(total_div);
-			if(type==23) //前2/3 后3/4
+			else if(type==23) //前2/3 后3/4
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(mySort.arr[i].Au)*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div));
-			if(type==24) //前2/3 后1
+			else if(type==24) //前2/3 后1
 				mySort.arr[i].Au=Math.cbrt(mySort.arr[i].Au)*Math.cbrt(mySort.arr[i].Au)*total_div;
 
-			if(type==25) //前3/4 后1/4
+			else if(type==25) //前3/4 后1/4
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(total_div));
-			if(type==26) //前3/4 后1/3
+			else if(type==26) //前3/4 后1/3
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.cbrt(total_div);
-			if(type==27) //前3/4 后1/2
+			else if(type==27) //前3/4 后1/2
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(total_div);
-			if(type==28) //前3/4 后2/3 //best
+			else if(type==28) //前3/4 后2/3 //best
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.cbrt(total_div)*Math.cbrt(total_div);
-			if(type==29) //前3/4 后3/4
+			else if(type==29) //前3/4 后3/4
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div));
-			if(type==30) //前3/4 后1
+			else if(type==30) //前3/4 后1
 				mySort.arr[i].Au=Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*Math.sqrt(Math.sqrt(mySort.arr[i].Au))*total_div;
 
-			if(type==31) //前1 后1/4
+			else if(type==31) //前1 后1/4
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.sqrt(Math.sqrt(total_div));
-			if(type==32) //前1 后1/3
+			else if(type==32) //前1 后1/3
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.cbrt(total_div);
-			if(type==33) //前1 后1/2
+			else if(type==33) //前1 后1/2
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.sqrt(total_div);
-			if(type==34) //前1 后2/3
+			else if(type==34) //前1 后2/3
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.cbrt(total_div)*Math.cbrt(total_div);
-			if(type==35) //前1 后3/4
+			else if(type==35) //前1 后3/4
 				mySort.arr[i].Au=mySort.arr[i].Au*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div))*Math.sqrt(Math.sqrt(total_div));
-			if(type==36) //前1 后1
+			else if(type==36) //前1 后1
 				mySort.arr[i].Au=mySort.arr[i].Au*total_div;
 
-			//对于观察点：只有最早来的才不加入惩罚：
-//			double min_time=CreateGraph3.getVertex(network,usedObvs_set.get(0)).time;
-//			double is_penalty=1;
-//			double not_penalty=1.02;
-//			for(int te=1;te<usedObvs_set.size()-1;te++){
-//				if(min_time==CreateGraph3.getVertex(network,usedObvs_set.get(te)).time)
-//					continue;
-//				else{
-//					if(ALG.shortPath_removeEDGES)
-//				}
-//
-//			}
 			//该节点每有一个未被感染的观察者邻居，就加入惩罚
 			double min_time=network.vertexArray[Integer.parseInt(usedObvs_set.get(0))-1].time;
 			double max=network.vertexArray[Integer.parseInt(  usedObvs_set.get(usedObvs_set.size()-1)  )-1].time;
@@ -876,7 +818,7 @@ public class SI {
 					mySort.arr[i].Au=mySort.arr[i].Au*1.02;
 				}
 				if(neig.isObserver&&neig.time!=-1&& usedObvs_set.contains(neig.verName) &&neig.origin.equals(thisNode.verName)&&thisNode.not_get_award) {
-					//邻居是 已经被感染的观察点                最早的3、4个                                    邻居被感染的来源就是thisNode           thisnode第一次被奖励
+					
 					if(min_time==max) {
 						//所有working sensor感染时间相同，那就乘以0.9
 						mySort.arr[i].Au=mySort.arr[i].Au*0.9;
@@ -910,14 +852,10 @@ public class SI {
 				if(mySort.arr[0].Au==mySort.arr[1].Au) {
 					double MIN=mySort.arr[0].Au;
 					for(int ii=0;ii<mySort.arr.length;ii++) {
-						if(Math.abs(MIN-mySort.arr[ii].Au)<0.000001) {//还是前N个相同的Au对应的点
-//							if(source==mySort.arr[ii].verName_typeINT) {
-//								allID_set.add(source+"");
-//								break;
-//							}
+						if(Math.abs(MIN-mySort.arr[ii].Au)<0.000001) {
 							allID_set.add(mySort.arr[ii].verName_typeINT+"");
 						}else {//前x个相同的Au点没一个属于传播源
-							//allID_set.add(mySort.arr[0].verName_typeINT+"");
+							
 							break;
 						}
 					}
@@ -925,12 +863,7 @@ public class SI {
 					allID_set.add(mySort.arr[0].verName_typeINT+"");
 				}
 			}
-//			else {
-//				//n 和 相同Au的数量 也不一定相同，这里对于非单源输出也可以做优化
-//				allID_set.add(mySort.arr[i].verName_typeINT+"");
-//			}
 
-		//}
 
 		return allID_set;
 	}
@@ -941,19 +874,19 @@ class Arraysort{
 	Point[] arr;
 
 	Arraysort(Graph1 network) {
-		arr = new Point[network.verNum]; // 定义对象数组arr，并分配存储的空间
+		arr = new Point[network.verNum]; 
 		for (int i = 0; i < network.verNum; i++) {
 			arr[i] = new Point();
-			//arr[i].verName_typeINT=i+1;
+			
 		}
 
 	}
 
 	Arraysort(int num) {
-		arr = new Point[num]; // 定义对象数组arr，并分配存储的空间
+		arr = new Point[num]; 
 		for (int i = 0; i < num; i++) {
 			arr[i] = new Point();
-			//arr[i].verName_typeINT=i+1;
+			
 		}
 
 	}
