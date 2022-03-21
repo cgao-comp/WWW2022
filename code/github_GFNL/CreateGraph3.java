@@ -17,8 +17,8 @@ public class CreateGraph3 {
 
 	static{
 		//拓扑结构的边数量和节点数量
-		vernum=37700;//317080;//21;//22470;//4648;//62;//115;//198;//18;//198;//7066;//4648;//4039;
-		edgenum=289003;//1049866;//31;//170823;//159;//613;//2742;//22;//2742;//103663;//59382;//88234;
+		vernum=4039;//37700;//317080;//21;//22470;//4648;//62;//115;//198;//18;//198;//7066;//4648;//4039;
+		edgenum=88234;//289003;//1049866;//31;//170823;//159;//613;//2742;//22;//2742;//103663;//59382;//88234;
 
 		all_nodes=new int[vernum];
 		all_edges=new int[edgenum][2];
@@ -29,7 +29,8 @@ public class CreateGraph3 {
 
 		try {
 			//网络拓扑结构文件路径
-			String path="/Users/houdongpeng/1/ComplexNetwork/src/quick_J_0117/github_social_edge.txt";
+			String path="G:\\eclipse workspace\\1\\ComplexNetwork\\src\\epaAlgorithm\\facebook_edge.txt";
+			//String path="G:\\eclipse workspace\\1\\ComplexNetwork\\src\\epaAlgorithm\\viki_adjG_continue_no_same.txt";
 			//String path = "G:\\Data Files\\Index1_com-dblp.ungraph_continue_no_same.txt";
 			//String path = "G:\\eclipse workspace\\1\\ComplexNetwork\\src\\epaAlgorithm\\jazz_edge.txt";
 			FileInputStream fileInputStream = new FileInputStream(path);
@@ -37,12 +38,9 @@ public class CreateGraph3 {
 			String line = null;
 			int line_index = 0;
 			while ((line = bufferedReader.readLine()) != null) {
-				//读了一行，后边对行的操作就需要我们自己搞了，要根据行的格式调整下边代码
 				String[] cut = line.split(" ");
 				int edge1 = Integer.parseInt(cut[0]);
 				int edge2 = Integer.parseInt(cut[1]);
-				//System.out.println(edge1+"  "+edge2);
-
 				all_edges[line_index][0] = edge1;
 				all_edges[line_index][1] = edge2;
 				line_index++;
@@ -99,15 +97,10 @@ public class CreateGraph3 {
 
 		//System.out.println("请依次输入每条边的两个顶点：");
 		for(int i=0;i<graph.edgeNum;i++){
-			//String preV=scan.next();
-			//String folV=scan.next();
-
-			//Vertex1 v1=getVertex(graph,preV);//这里拿到的是network对应的邻接表的点对象，即第一列
 			Vertex1 v1=graph.vertexArray[all_edges[i][0]-1];
 			if(v1==null)
 				System.out.println("输入边存在图中没有的顶点！");
 
-//下面代码是图构建的核心：链表操作
 			Vertex1 v2=new Vertex1();
 			v2.verName=all_edges[i][1]+"";
 			v2.nextNode=v1.nextNode;
@@ -116,7 +109,6 @@ public class CreateGraph3 {
 			v1.nextNode=v2;
 			v1.degree++;
 
-//紧接着下面注释的代码加上便是构建无向图的，不加则是构建有向图的！
 			Vertex1 reV2=graph.vertexArray[all_edges[i][1]-1];
 			if(reV2==null)
 				System.out.println("输入边存在图中没有的顶点！");
@@ -179,10 +171,7 @@ public class CreateGraph3 {
 			vertex.time=-1;
 			vertex.infe=false;
 			tree.vertexArray[i]=vertex;
-		}//创建生成树，这里只赋予了节点信息
-
-		//Vertex1 vertex1=getVertex(graph, source);
-		//vertex1.time=0;//将图中的源标记为已遍历状态
+		}
 
 		ConcurrentLinkedQueue<String> Queue=new ConcurrentLinkedQueue<String>();
 		HashSet<String> travelled_node=new HashSet<>();
@@ -193,11 +182,10 @@ public class CreateGraph3 {
 			Vertex1 centerNode=getVertex(graph,centerNodeName);
 			Vertex1 neighborVertex=centerNode.nextNode;
 			while(neighborVertex!=null){
-				if(!travelled_node.contains(neighborVertex.verName)){//邻居节点一旦存在，那么不用说，100%已经有连通路径，就不用管了
+				if(!travelled_node.contains(neighborVertex.verName)){
 					travelled_node.add(neighborVertex.verName);
 					Queue.add(neighborVertex.verName);
 
-					//紧接着是在tree上是构建无向图
 					Vertex1 neighborNode=getVertex(graph,neighborVertex.verName);
 
 					Vertex1 v1=getVertex(tree,centerNode.verName);
@@ -217,7 +205,6 @@ public class CreateGraph3 {
 					v1.state=centerNode.state;
 					v1.time=centerNode.time;
 
-					//无向图的反向构建
 					Vertex1 reNeighbor=getVertex(tree,neighborNode.verName);
 					Vertex1 reCenter=new Vertex1();
 					reCenter.verName=centerNode.verName;
