@@ -22,35 +22,28 @@ public class ALG {
 	public static int[][] shortPath;
 	public static int[] shortDis_of_verNum;
 	public static int[][] shortPath_fourworkingsensor;
+	public static boolean isBigScaleNet;
 	
 	public static int[] adjGraph_ShortPath(Graph1 network,int verName_int) {
 		shortDis_of_verNum=new int[network.verNum];
 		 Queue<vertex_dij> queue = new LinkedList<vertex_dij>();
 		 Set<String> exist=new HashSet<String>();
 		 exist.add(verName_int+"");
-		//初始化为-1
 		for(int i=0;i<network.verNum;i++) {
 			shortDis_of_verNum[i]=-1;
 		}
 		shortDis_of_verNum[verName_int-1]=0;
-		
 		int dis=1;
-		//选中根节点
 		Vertex1 root=network.vertexArray[verName_int-1];
 		Vertex1 current=root.nextNode;
 		while(current!=null){
-			//根节点的所有邻居DFS
 			queue.offer(new vertex_dij(Integer.parseInt(current.verName), dis));
 			exist.add(current.verName);
 			current=current.nextNode;
 		}
-		
 		while(!queue.isEmpty()) {
 			vertex_dij now=queue.poll();
 			shortDis_of_verNum[now.verName_int-1]=now.distance;
-			//System.out.println("verName: "+now.verName_int+"  distance: "+now.distance);
-			
-			//将目前节点的邻居加入，如果已经在exist集合中了，说明有更短的路径，只是还没来得及进行遍历
 			Vertex1 now_vertex=network.vertexArray[now.verName_int-1];
 			while(now_vertex.nextNode!=null) {
 				now_vertex=now_vertex.nextNode;
@@ -85,6 +78,15 @@ public class ALG {
 //                , 37700);
 //		System.out.println("shortPath已初始化完成...");
 		
+		ALG.isBigScaleNet=false;
+		if(ALG.isBigScaleNet) {
+			//None
+		}else {
+			//不是大型网络可以读入到内存中，加速运行效率
+			ALG.shortPath= Read.readFromShortPathFile("G:\\Data Files\\shortPath_facebook.txt", 4039);
+			System.out.println("内存中的shortPath初始化完成.....");
+			System.out.println("shortPath.length: "+shortPath.length +"----shortPath[1].length: "+shortPath[1].length);
+		}
 		
 		//有了观察点以后执行溯源方法的算法
 		for(int i=-7;i<=-7;i++) {
